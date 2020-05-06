@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:core';
+import 'dart:convert';
 
 import 'package:connectivity/connectivity.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:wifi/wifi.dart';
 
 class EspTouchHome extends StatefulWidget {
   EspTouchHome({Key key, this.appName}) : super(key: key);
@@ -18,12 +21,12 @@ class EspTouchHome extends StatefulWidget {
 class _EspTouchHomeState extends State<EspTouchHome> {
   String _connectionStatus = 'Unknown';
   final Connectivity _connectivity = Connectivity();
-  StreamSubscription<ConnectivityResult> _connectivitySubscription;
+    StreamSubscription<ConnectivityResult> _connectivitySubscription;
 
-//  String _networkStatus;
   String _wifiBSSID;
   String _wifiIP;
   String _wifiName;
+  String _wifiList;
 
   @override
   void initState() {
@@ -31,7 +34,6 @@ class _EspTouchHomeState extends State<EspTouchHome> {
     initConnectivity();
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
-//    WidgetsBinding.instance.addPostFrameCallback((_) => getNetworkInfo());
   }
 
   @override
@@ -48,10 +50,12 @@ class _EspTouchHomeState extends State<EspTouchHome> {
       ),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16.0), children: <Widget>[
-//          Text("Status: $_networkStatus"),
-//          Text("Wi-Fi Base Station ID (BSID): $_wifiBSSID"),
-//          Text("IP Address: $_wifiIP"),
-          Text("Connection:  $_connectionStatus"),
+          Text("Network Name (SSID): $_wifiName"),
+          Text("Wi-Fi Base Station ID (BSID): $_wifiBSSID"),
+          Text("IP Address: $_wifiIP"),
+          SizedBox(height: 10),
+          Text("Wi-Fi List:"),
+          Text("$_wifiList"),
         ]),
       ),
     );
@@ -84,10 +88,10 @@ class _EspTouchHomeState extends State<EspTouchHome> {
         try {
           if (Platform.isIOS) {
             LocationAuthorizationStatus status =
-            await _connectivity.getLocationServiceAuthorization();
+                await _connectivity.getLocationServiceAuthorization();
             if (status == LocationAuthorizationStatus.notDetermined) {
               status =
-              await _connectivity.requestLocationServiceAuthorization();
+                  await _connectivity.requestLocationServiceAuthorization();
             }
             if (status == LocationAuthorizationStatus.authorizedAlways ||
                 status == LocationAuthorizationStatus.authorizedWhenInUse) {
@@ -106,38 +110,47 @@ class _EspTouchHomeState extends State<EspTouchHome> {
         try {
           if (Platform.isIOS) {
             LocationAuthorizationStatus status =
-            await _connectivity.getLocationServiceAuthorization();
+                await _connectivity.getLocationServiceAuthorization();
             if (status == LocationAuthorizationStatus.notDetermined) {
               status =
-              await _connectivity.requestLocationServiceAuthorization();
+                  await _connectivity.requestLocationServiceAuthorization();
             }
             if (status == LocationAuthorizationStatus.authorizedAlways ||
                 status == LocationAuthorizationStatus.authorizedWhenInUse) {
-              _wifiBSSID = await _connectivity.getWifiBSSID();
+              wifiBSSID = await _connectivity.getWifiBSSID();
             } else {
-              _wifiBSSID = await _connectivity.getWifiBSSID();
+              wifiBSSID = await _connectivity.getWifiBSSID();
             }
           } else {
-            _wifiBSSID = await _connectivity.getWifiBSSID();
+            wifiBSSID = await _connectivity.getWifiBSSID();
           }
         } on PlatformException catch (e) {
           print(e.toString());
-          _wifiBSSID = "Failed to get Wifi BSSID";
+          wifiBSSID = "Failed to get Wifi BSSID";
         }
 
         try {
-          _wifiIP = await _connectivity.getWifiIP();
+          wifiIP = await _connectivity.getWifiIP();
         } on PlatformException catch (e) {
           print(e.toString());
-          _wifiIP = "Failed to get Wifi IP";
+          wifiIP = "Failed to get Wifi IP";
         }
 
-        setState(() {
-          _connectionStatus = '$result\n'
-              'Wifi Name: $_wifiName\n'
-              'Wifi BSSID: $_wifiBSSID\n'
-              'Wifi IP: $_wifiIP\n';
-        });
+        List<WifiResult> list = await Wifi.list('');
+        List<String> nameList = [];
+        for (var item in list) {
+          nameList.add(item.ssid);
+        }
+        // strip duplicates then sort the list
+        nameList = nameList.toSet().toList();
+        nameList.sort();
+        String wList = nameList.join('\n');
+
+        setState(() => _wifiName = wifiName);
+        setState(() => _wifiBSSID = wifiBSSID);
+        setState(() => _wifiIP = wifiIP);
+        setState(() => _wifiList = wList);
+
         break;
       case ConnectivityResult.mobile:
       case ConnectivityResult.none:
@@ -148,21 +161,3 @@ class _EspTouchHomeState extends State<EspTouchHome> {
         break;
     }
   }
-
-//  void getNetworkInfo() async {
-//    var statusString = 'Unknown';
-//    var connectivityResult = await (Connectivity().checkConnectivity());
-//    if (connectivityResult == ConnectivityResult.mobile) {
-//      statusString = 'Mobile';
-//    } else if (connectivityResult == ConnectivityResult.wifi) {
-//      statusString = 'Wi-Fi';
-//      String var1 = await (Connectivity().getWifiBSSID());
-//      setState(() => _wifiBSSID = var1);
-//      String var2 = await (Connectivity().getWifiIP());
-//      setState(() => _wifiIP = var2);
-//      String var3 = await (Connectivity().getWifiName());
-//      setState(() => _wifiName = var3);
-//    }
-//    setState(() => _networkStatus = statusString);
-//  }
-}
