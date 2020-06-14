@@ -1,14 +1,16 @@
 import 'dart:async';
-import 'dart:io';
 import 'dart:core';
-//import 'dart:convert';
-//import 'package:wifi/wifi.dart';
-import 'package:esptouch_flutter/esptouch_flutter.dart';
-import 'package:connectivity/connectivity.dart';
-import 'package:flutter/foundation.dart';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:connectivity/connectivity.dart';
+import 'package:esptouch_flutter/esptouch_flutter.dart';
 import 'package:passwordfield/passwordfield.dart';
+//import 'package:wifi/wifi.dart';
+//import 'package:flutter/foundation.dart';
+//import 'package:flutter/material.dart';
+
 
 class EspTouchHome extends StatefulWidget {
   EspTouchHome({Key key, this.appName}) : super(key: key);
@@ -25,8 +27,6 @@ class _EspTouchHomeState extends State<EspTouchHome> {
 
   TextEditingController connectionStatusController;
   TextEditingController wifiPasswordController;
-//  TextEditingController remoteNotifyIPAddressController;
-//  TextEditingController remoteNotifyMacAddressController;
 
   String _connectionStatus = 'Unknown';
   String _remoteNotifyIPAddress;
@@ -35,11 +35,9 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   String _wifiName;
   String _wifiPassword;
 
-//  String _wifiIP;
-//  String _wifiList;
-
   @override
   void initState() {
+    print('initState()');
     super.initState();
     initConnectivity();
     _connectivitySubscription =
@@ -47,14 +45,11 @@ class _EspTouchHomeState extends State<EspTouchHome> {
 
     connectionStatusController = TextEditingController(text: _connectionStatus);
     wifiPasswordController = TextEditingController(text: _wifiPassword);
-//    remoteNotifyIPAddressController =
-//        TextEditingController(text: _remoteNotifyIPAddress);
-//    remoteNotifyMacAddressController =
-//        TextEditingController(text: _remoteNotifyMacAddress);
   }
 
   @override
   void dispose() {
+    print('dispose()');
     _connectivitySubscription.cancel();
     super.dispose();
   }
@@ -107,10 +102,6 @@ class _EspTouchHomeState extends State<EspTouchHome> {
           Text("Remote Notify"),
           Text("IP Address: $_remoteNotifyIPAddress"),
           Text("Mac Address: $_remoteNotifyMacAddress"),
-//          Text("IP Address: $_wifiIP"),
-//          SizedBox(height: 10),
-//          Text("Wi-Fi List:"),
-//          Text("$_wifiList"),
         ]),
       ),
     );
@@ -139,6 +130,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   }
 
   Future<void> initConnectivity() async {
+    print('initConnectivity()');
     ConnectivityResult result;
     // Platform messages may fail, so we use a try/catch PlatformException.
     try {
@@ -158,9 +150,11 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   }
 
   Future<void> _updateConnectionStatus(ConnectivityResult result) async {
+    print('_updateConnectionStatus($result)');
     switch (result) {
       case ConnectivityResult.wifi:
-        String wifiName, wifiBSSID, wifiIP;
+        print('_updateConnectionStatus: Wi-Fi');
+        String wifiName, wifiBSSID;
 
         try {
           if (Platform.isIOS) {
@@ -206,35 +200,28 @@ class _EspTouchHomeState extends State<EspTouchHome> {
           wifiBSSID = "Failed to get Wi-Fi BSSID";
         }
 
-        try {
-          wifiIP = await _connectivity.getWifiIP();
-        } on PlatformException catch (e) {
-          print(e.toString());
-          wifiIP = "Failed to get Wi-Fi IP";
-        }
-
-//        List<WifiResult> list = await Wifi.list('');
-//        List<String> nameList = [];
-//        for (var item in list) {
-//          nameList.add(item.ssid);
+//        try {
+//          wifiIP = await _connectivity.getWifiIP();
+//        } on PlatformException catch (e) {
+//          print(e.toString());
+//          wifiIP = "Failed to get Wi-Fi IP";
 //        }
-//        // strip duplicates then sort the list
-//        nameList = nameList.toSet().toList();
-//        nameList.sort();
-//        String wList = nameList.join('\n');
 
         setState(() {
           _wifiName = wifiName;
           _wifiBSSID = wifiBSSID;
-//          _wifiIP = wifiIP;
-//          _wifiList = wList;
         });
         break;
       case ConnectivityResult.mobile:
+        print('_updateConnectionStatus: mobile');
+        setState(() => _connectionStatus = result.toString());
+        break;
       case ConnectivityResult.none:
+      print('_updateConnectionStatus: none');
         setState(() => _connectionStatus = result.toString());
         break;
       default:
+        print('_updateConnectionStatus: default');
         setState(() => _connectionStatus = 'Failed to get connectivity.');
         break;
     }
