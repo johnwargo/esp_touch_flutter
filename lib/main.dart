@@ -4,7 +4,7 @@ import './pages/home.dart';
 void main() => runApp(EspTouchApp());
 
 class EspTouchApp extends StatelessWidget {
-  String appName = 'ESP Touch Testing';
+  String appName = 'ESP Touch Test';
 
   @override
   Widget build(BuildContext context) {

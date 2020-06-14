@@ -1,13 +1,15 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:core';
-import 'dart:convert';
+//import 'dart:convert';
 
+import 'package:esptouch_flutter/esptouch_flutter.dart';
 import 'package:connectivity/connectivity.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:wifi/wifi.dart';
+import 'package:passwordfield/passwordfield.dart';
+//import 'package:wifi/wifi.dart';
 
 class EspTouchHome extends StatefulWidget {
   EspTouchHome({Key key, this.appName}) : super(key: key);
@@ -21,12 +23,20 @@ class EspTouchHome extends StatefulWidget {
 class _EspTouchHomeState extends State<EspTouchHome> {
   String _connectionStatus = 'Unknown';
   final Connectivity _connectivity = Connectivity();
-    StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  StreamSubscription<ConnectivityResult> _connectivitySubscription;
+
+  TextEditingController wifiPasswordController;
+  TextEditingController remoteNotifyIPAddressController;
+  TextEditingController remoteNotifyMacAddressController;
 
   String _wifiBSSID;
-  String _wifiIP;
+//  String _wifiIP;
   String _wifiName;
-  String _wifiList;
+  String _wifiPassword;
+  String _remoteNotifyIPAddress;
+  String _remoteNotifyMacAddress;
+
+//  String _wifiList;
 
   @override
   void initState() {
@@ -34,6 +44,10 @@ class _EspTouchHomeState extends State<EspTouchHome> {
     initConnectivity();
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
+
+    wifiPasswordController = TextEditingController(text: _wifiPassword);
+    remoteNotifyIPAddressController = TextEditingController(text: _remoteNotifyIPAddress);
+    remoteNotifyMacAddressController = TextEditingController(text: _remoteNotifyMacAddress);
   }
 
   @override
@@ -51,14 +65,83 @@ class _EspTouchHomeState extends State<EspTouchHome> {
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16.0), children: <Widget>[
           Text("Network Name (SSID): $_wifiName"),
-          Text("Wi-Fi Base Station ID (BSID): $_wifiBSSID"),
-          Text("IP Address: $_wifiIP"),
+          Text("Base Station ID (BSID): $_wifiBSSID"),
           SizedBox(height: 10),
-          Text("Wi-Fi List:"),
-          Text("$_wifiList"),
+          Text("$_wifiName Network Password"),
+          SizedBox(height: 10),
+          PasswordField(
+            color: Colors.black,
+            hasFloatingPlaceholder: true,
+            controller: wifiPasswordController,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(2),
+                borderSide: BorderSide(width: 2, color: Colors.black)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(width: 2, color: Colors.blueAccent)),
+//            pattern: r'.*[@$#.*].*',
+//            errorMessage: 'must contain special character either . * @ # \$',
+          ),
+          SizedBox(height: 10),
+          Text(
+              "Tap the Push Configuration button to save the Wi-Fi configuration to your Remote Notify device. Make sure the device is powered on before tapping the button."),
+          SizedBox(height: 10),
+          FlatButton(
+            color: Colors.blue,
+            textColor: Colors.white,
+            disabledColor: Colors.grey,
+            disabledTextColor: Colors.black,
+            padding: EdgeInsets.all(8.0),
+            splashColor: Colors.blueAccent,
+            onPressed: setWifiConfig,
+            child: Text(
+              "Push Configuration",
+              style: TextStyle(fontSize: 20.0),
+            ),
+          ),
+          SizedBox(height: 10),
+          Text("Remote Notify Device IP Address"),
+          SizedBox(height: 10),
+          TextField(
+            readOnly: true,
+            controller: remoteNotifyIPAddressController,
+          ),
+          SizedBox(height: 10),
+          Text("Remote Notify Device Mac Address"),
+          SizedBox(height: 10),
+          TextField(
+            readOnly: true,
+            controller: remoteNotifyMacAddressController,
+          ),
+//          Text("IP Address: $_wifiIP"),
+//          SizedBox(height: 10),
+//          Text("Wi-Fi List:"),
+//          Text("$_wifiList"),
         ]),
       ),
     );
+  }
+
+  void setWifiConfig() {
+    // TODO: validate the config first
+    print('setWifiConfig');
+    final ESPTouchTask task = ESPTouchTask(
+      ssid: _wifiName,
+      bssid: _wifiBSSID,
+      password: _wifiPassword,
+    );
+    final Stream<ESPTouchResult> stream = task.execute();
+    final printResult = (ESPTouchResult result) {
+      print('IP: ${result.ip} MAC: ${result.bssid}');
+      setState(() {
+        _remoteNotifyIPAddress = result.ip;
+        _remoteNotifyMacAddress = result.bssid;
+      });
+    };
+    StreamSubscription<ESPTouchResult> streamSubscription =
+        stream.listen(printResult);
+    // Don't forget to cancel your stream subscription:
+    streamSubscription.cancel();
   }
 
   Future<void> initConnectivity() async {
@@ -104,7 +187,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
           }
         } on PlatformException catch (e) {
           print(e.toString());
-          wifiName = "Failed to get Wifi Name";
+          wifiName = "Failed to get Wi-Fi Name";
         }
 
         try {
@@ -126,31 +209,32 @@ class _EspTouchHomeState extends State<EspTouchHome> {
           }
         } on PlatformException catch (e) {
           print(e.toString());
-          wifiBSSID = "Failed to get Wifi BSSID";
+          wifiBSSID = "Failed to get Wi-Fi BSSID";
         }
 
         try {
           wifiIP = await _connectivity.getWifiIP();
         } on PlatformException catch (e) {
           print(e.toString());
-          wifiIP = "Failed to get Wifi IP";
+          wifiIP = "Failed to get Wi-Fi IP";
         }
 
-        List<WifiResult> list = await Wifi.list('');
-        List<String> nameList = [];
-        for (var item in list) {
-          nameList.add(item.ssid);
-        }
-        // strip duplicates then sort the list
-        nameList = nameList.toSet().toList();
-        nameList.sort();
-        String wList = nameList.join('\n');
+//        List<WifiResult> list = await Wifi.list('');
+//        List<String> nameList = [];
+//        for (var item in list) {
+//          nameList.add(item.ssid);
+//        }
+//        // strip duplicates then sort the list
+//        nameList = nameList.toSet().toList();
+//        nameList.sort();
+//        String wList = nameList.join('\n');
 
-        setState(() => _wifiName = wifiName);
-        setState(() => _wifiBSSID = wifiBSSID);
-        setState(() => _wifiIP = wifiIP);
-        setState(() => _wifiList = wList);
-
+        setState(() {
+          _wifiName = wifiName;
+          _wifiBSSID = wifiBSSID;
+//          _wifiIP = wifiIP;
+//          _wifiList = wList;
+        });
         break;
       case ConnectivityResult.mobile:
       case ConnectivityResult.none:
@@ -161,3 +245,4 @@ class _EspTouchHomeState extends State<EspTouchHome> {
         break;
     }
   }
+}
