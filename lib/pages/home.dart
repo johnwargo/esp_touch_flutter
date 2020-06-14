@@ -2,14 +2,13 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:core';
 //import 'dart:convert';
-
+//import 'package:wifi/wifi.dart';
 import 'package:esptouch_flutter/esptouch_flutter.dart';
 import 'package:connectivity/connectivity.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:passwordfield/passwordfield.dart';
-//import 'package:wifi/wifi.dart';
 
 class EspTouchHome extends StatefulWidget {
   EspTouchHome({Key key, this.appName}) : super(key: key);
@@ -21,21 +20,22 @@ class EspTouchHome extends StatefulWidget {
 }
 
 class _EspTouchHomeState extends State<EspTouchHome> {
-  String _connectionStatus = 'Unknown';
   final Connectivity _connectivity = Connectivity();
   StreamSubscription<ConnectivityResult> _connectivitySubscription;
 
+  TextEditingController connectionStatusController;
   TextEditingController wifiPasswordController;
-  TextEditingController remoteNotifyIPAddressController;
-  TextEditingController remoteNotifyMacAddressController;
+//  TextEditingController remoteNotifyIPAddressController;
+//  TextEditingController remoteNotifyMacAddressController;
 
-  String _wifiBSSID;
-//  String _wifiIP;
-  String _wifiName;
-  String _wifiPassword;
+  String _connectionStatus = 'Unknown';
   String _remoteNotifyIPAddress;
   String _remoteNotifyMacAddress;
+  String _wifiBSSID;
+  String _wifiName;
+  String _wifiPassword;
 
+//  String _wifiIP;
 //  String _wifiList;
 
   @override
@@ -45,9 +45,12 @@ class _EspTouchHomeState extends State<EspTouchHome> {
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
 
+    connectionStatusController = TextEditingController(text: _connectionStatus);
     wifiPasswordController = TextEditingController(text: _wifiPassword);
-    remoteNotifyIPAddressController = TextEditingController(text: _remoteNotifyIPAddress);
-    remoteNotifyMacAddressController = TextEditingController(text: _remoteNotifyMacAddress);
+//    remoteNotifyIPAddressController =
+//        TextEditingController(text: _remoteNotifyIPAddress);
+//    remoteNotifyMacAddressController =
+//        TextEditingController(text: _remoteNotifyMacAddress);
   }
 
   @override
@@ -64,10 +67,11 @@ class _EspTouchHomeState extends State<EspTouchHome> {
       ),
       body: SafeArea(
         child: ListView(padding: const EdgeInsets.all(16.0), children: <Widget>[
+          Text("Connection Status: $_connectionStatus"),
           Text("Network Name (SSID): $_wifiName"),
           Text("Base Station ID (BSID): $_wifiBSSID"),
           SizedBox(height: 10),
-          Text("$_wifiName Network Password"),
+          Text("Wi-Fi Network Password"),
           SizedBox(height: 10),
           PasswordField(
             color: Colors.black,
@@ -100,19 +104,9 @@ class _EspTouchHomeState extends State<EspTouchHome> {
             ),
           ),
           SizedBox(height: 10),
-          Text("Remote Notify Device IP Address"),
-          SizedBox(height: 10),
-          TextField(
-            readOnly: true,
-            controller: remoteNotifyIPAddressController,
-          ),
-          SizedBox(height: 10),
-          Text("Remote Notify Device Mac Address"),
-          SizedBox(height: 10),
-          TextField(
-            readOnly: true,
-            controller: remoteNotifyMacAddressController,
-          ),
+          Text("Remote Notify"),
+          Text("IP Address: $_remoteNotifyIPAddress"),
+          Text("Mac Address: $_remoteNotifyMacAddress"),
 //          Text("IP Address: $_wifiIP"),
 //          SizedBox(height: 10),
 //          Text("Wi-Fi List:"),
