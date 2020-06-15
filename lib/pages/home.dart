@@ -1,16 +1,18 @@
-import 'dart:async';
-import 'dart:core';
-import 'dart:io';
+// ignore_for_file: public_member_api_docs
 
+import 'dart:async';
+import 'dart:io';
+import 'dart:core';
+//import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import 'package:connectivity/connectivity.dart';
+import 'package:permission_handler/permission_handler.dart';
+
 import 'package:esptouch_flutter/esptouch_flutter.dart';
 import 'package:passwordfield/passwordfield.dart';
-//import 'package:wifi/wifi.dart';
-//import 'package:flutter/foundation.dart';
-//import 'package:flutter/material.dart';
-
 
 class EspTouchHome extends StatefulWidget {
   EspTouchHome({Key key, this.appName}) : super(key: key);
@@ -22,6 +24,7 @@ class EspTouchHome extends StatefulWidget {
 }
 
 class _EspTouchHomeState extends State<EspTouchHome> {
+
   final Connectivity _connectivity = Connectivity();
   StreamSubscription<ConnectivityResult> _connectivitySubscription;
 
@@ -78,8 +81,6 @@ class _EspTouchHomeState extends State<EspTouchHome> {
             focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(10),
                 borderSide: BorderSide(width: 2, color: Colors.blueAccent)),
-//            pattern: r'.*[@$#.*].*',
-//            errorMessage: 'must contain special character either . * @ # \$',
           ),
           SizedBox(height: 10),
           Text(
@@ -146,23 +147,113 @@ class _EspTouchHomeState extends State<EspTouchHome> {
       return Future.value(null);
     }
 
+    // Check to see if Android Location permissions are enabled
+    // Described in https://github.com/flutter/flutter/issues/51529
+    if (Platform.isAndroid) {
+      print('Checking Android permissions');
+      var status = await Permission.location.status;
+      // Blocked?
+      if (status.isUndetermined || status.isDenied || status.isRestricted) {
+        // Ask the user to unblock
+        if (await Permission.location.request().isGranted) {
+          // Either the permission was already granted before or the user just granted it.
+          print('Location permission granted');
+        } else {
+          print('Location permission not granted');
+        }
+      } else {
+        print('Permission already granted (previous execution?)');
+      }
+    }
+
     return _updateConnectionStatus(result);
   }
 
+//  Future<void> _updateConnectionStatus(ConnectivityResult result) async {
+//    print('_updateConnectionStatus($result)');
+//    switch (result) {
+//      case ConnectivityResult.wifi:
+//        print('_updateConnectionStatus: Wi-Fi');
+//        String wifiName, wifiBSSID;
+//
+//        try {
+//          if (Platform.isIOS) {
+//            LocationAuthorizationStatus status =
+//                await _connectivity.getLocationServiceAuthorization();
+//            if (status == LocationAuthorizationStatus.notDetermined) {
+//              status =
+//                  await _connectivity.requestLocationServiceAuthorization();
+//            }
+//            if (status == LocationAuthorizationStatus.authorizedAlways ||
+//                status == LocationAuthorizationStatus.authorizedWhenInUse) {
+//              wifiName = await _connectivity.getWifiName();
+//            } else {
+//              wifiName = await _connectivity.getWifiName();
+//            }
+//          } else {
+//            wifiName = await _connectivity.getWifiName();
+//          }
+//        } on PlatformException catch (e) {
+//          print(e.toString());
+//          wifiName = "Failed to get Wi-Fi Name";
+//        }
+//        print('Wi-Fi Name: $wifiName');
+//
+//        try {
+//          if (Platform.isIOS) {
+//            LocationAuthorizationStatus status =
+//                await _connectivity.getLocationServiceAuthorization();
+//            if (status == LocationAuthorizationStatus.notDetermined) {
+//              status =
+//                  await _connectivity.requestLocationServiceAuthorization();
+//            }
+//            if (status == LocationAuthorizationStatus.authorizedAlways ||
+//                status == LocationAuthorizationStatus.authorizedWhenInUse) {
+//              wifiBSSID = await _connectivity.getWifiBSSID();
+//            } else {
+//              wifiBSSID = await _connectivity.getWifiBSSID();
+//            }
+//          } else {
+//            wifiBSSID = await _connectivity.getWifiBSSID();
+//          }
+//        } on PlatformException catch (e) {
+//          print(e.toString());
+//          wifiBSSID = "Failed to get Wi-Fi BSSID";
+//        }
+//        print('BSSID: $wifiBSSID');
+//
+//        setState(() {
+//          _wifiName = wifiName;
+//          _wifiBSSID = wifiBSSID;
+//        });
+//        break;
+//      case ConnectivityResult.mobile:
+//        print('_updateConnectionStatus: mobile');
+//        setState(() => _connectionStatus = result.toString());
+//        break;
+//      case ConnectivityResult.none:
+//      print('_updateConnectionStatus: none');
+//        setState(() => _connectionStatus = result.toString());
+//        break;
+//      default:
+//        print('_updateConnectionStatus: default');
+//        setState(() => _connectionStatus = 'Failed to get connectivity.');
+//        break;
+//    }
+//  }
+
   Future<void> _updateConnectionStatus(ConnectivityResult result) async {
-    print('_updateConnectionStatus($result)');
     switch (result) {
       case ConnectivityResult.wifi:
-        print('_updateConnectionStatus: Wi-Fi');
-        String wifiName, wifiBSSID;
+        String wifiName, wifiBSSID, wifiIP;
 
         try {
           if (Platform.isIOS) {
             LocationAuthorizationStatus status =
-                await _connectivity.getLocationServiceAuthorization();
+            await _connectivity.getLocationServiceAuthorization();
             if (status == LocationAuthorizationStatus.notDetermined) {
               status =
-                  await _connectivity.requestLocationServiceAuthorization();
+              await _connectivity.requestLocationServiceAuthorization();
             }
             if (status == LocationAuthorizationStatus.authorizedAlways ||
                 status == LocationAuthorizationStatus.authorizedWhenInUse) {
@@ -175,16 +266,16 @@ class _EspTouchHomeState extends State<EspTouchHome> {
           }
         } on PlatformException catch (e) {
           print(e.toString());
-          wifiName = "Failed to get Wi-Fi Name";
+          wifiName = "Failed to get Wifi Name";
         }
 
         try {
           if (Platform.isIOS) {
             LocationAuthorizationStatus status =
-                await _connectivity.getLocationServiceAuthorization();
+            await _connectivity.getLocationServiceAuthorization();
             if (status == LocationAuthorizationStatus.notDetermined) {
               status =
-                  await _connectivity.requestLocationServiceAuthorization();
+              await _connectivity.requestLocationServiceAuthorization();
             }
             if (status == LocationAuthorizationStatus.authorizedAlways ||
                 status == LocationAuthorizationStatus.authorizedWhenInUse) {
@@ -197,31 +288,40 @@ class _EspTouchHomeState extends State<EspTouchHome> {
           }
         } on PlatformException catch (e) {
           print(e.toString());
-          wifiBSSID = "Failed to get Wi-Fi BSSID";
+          wifiBSSID = "Failed to get Wifi BSSID";
         }
 
-//        try {
-//          wifiIP = await _connectivity.getWifiIP();
-//        } on PlatformException catch (e) {
-//          print(e.toString());
-//          wifiIP = "Failed to get Wi-Fi IP";
-//        }
+        try {
+          wifiIP = await _connectivity.getWifiIP();
+        } on PlatformException catch (e) {
+          print(e.toString());
+          wifiIP = "Failed to get Wifi IP";
+        }
 
-        setState(() {
-          _wifiName = wifiName;
-          _wifiBSSID = wifiBSSID;
-        });
+        setState(() => _wifiName = wifiName);
+        setState(() => _wifiBSSID = wifiBSSID);
+//        setState(() => _wifiIP = wifiIP);
+//        setState(() => _wifiList = wList);
+
+//        setState(() {
+//          _wifiName = wifiName;
+//        });
+//          setState(() {
+//          _wifiBSSID = wifiBSSID;
+//        });
+
+//        setState(() {
+//          _connectionStatus = '$result\n'
+//              'Wifi Name: $wifiName\n'
+//              'Wifi BSSID: $wifiBSSID\n'
+////              'Wifi IP: $wifiIP\n';
+//        });
         break;
       case ConnectivityResult.mobile:
-        print('_updateConnectionStatus: mobile');
-        setState(() => _connectionStatus = result.toString());
-        break;
       case ConnectivityResult.none:
-      print('_updateConnectionStatus: none');
         setState(() => _connectionStatus = result.toString());
         break;
       default:
-        print('_updateConnectionStatus: default');
         setState(() => _connectionStatus = 'Failed to get connectivity.');
         break;
     }
