@@ -232,6 +232,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
         print('BSSID: $wifiBSSID');
 
         setState(() {
+          _connectionStatus = result.toString();
           _wifiName = wifiName;
           _wifiBSSID = wifiBSSID;
         });
