@@ -13,7 +13,6 @@ dependencies:
   esptouch_flutter: ^0.2.2+1
   passwordfield: ^0.0.6
   permission_handler: ^5.0.1
-#  wifi: ^0.1.5
 
 dev_dependencies:
   flutter_test:
