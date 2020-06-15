@@ -17,7 +17,7 @@ void _enablePlatformOverrideForDesktop() {
 
 class EspTouchApp extends StatelessWidget {
 
-  String appName = 'ESP Touch Test';
+  String appName = 'ESP Touch (Flutter)';
 
   @override
   Widget build(BuildContext context) {
