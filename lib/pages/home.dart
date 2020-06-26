@@ -14,6 +14,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:esptouch_flutter/esptouch_flutter.dart';
 import 'package:passwordfield/passwordfield.dart';
 
+// TODO: Make the button raised.
+// TODO: implement a spinner during processing
+
 class EspTouchHome extends StatefulWidget {
   EspTouchHome({Key key, this.appName}) : super(key: key);
 
@@ -35,7 +38,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   String _remoteNotifyMacAddress;
   String _wifiBSSID;
   String _wifiName;
-  String _wifiPassword;
+  String _wifiPassword = 'nothing is ever easy';
 
   @override
   void initState() {
@@ -45,11 +48,8 @@ class _EspTouchHomeState extends State<EspTouchHome> {
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
 
-//    connectionStatusController = TextEditingController(text: _connectionStatus);
     wifiPasswordController = TextEditingController(text: _wifiPassword);
     wifiPasswordController.addListener(() {
-//      String value = wifiPasswordController.text;
-//      print('Updating password variable: $value');
       setState(() => _wifiPassword = wifiPasswordController.text);
     });
   }
@@ -131,9 +131,11 @@ class _EspTouchHomeState extends State<EspTouchHome> {
         });
       };
       StreamSubscription<ESPTouchResult> streamSubscription =
-      stream.listen(printResult);
+          stream.listen(printResult);
+      // https://github.com/smaho-engineering/esptouch_flutter_kotlin_example
       // Don't forget to cancel your stream subscription:
-      streamSubscription.cancel();
+      Future.delayed(Duration(minutes: 1), () => streamSubscription.cancel());
+      // streamSubscription.cancel();
     } else {
       print('Missing configuration value');
     }
@@ -242,7 +244,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
         setState(() => _connectionStatus = result.toString());
         break;
       case ConnectivityResult.none:
-      print('_updateConnectionStatus: none');
+        print('_updateConnectionStatus: none');
         setState(() => _connectionStatus = result.toString());
         break;
       default:
