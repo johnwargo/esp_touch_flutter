@@ -40,8 +40,9 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   String _wifiName;
   String _wifiPassword = 'nothing is ever easy';
 
-  bool configButtonEnabled = true;
-  bool cancelButtonEnabled = false;
+  bool buttonStatus = true;
+//  bool configButtonEnabled = true;
+//  bool cancelButtonEnabled = false;
 
   @override
   void initState() {
@@ -100,7 +101,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
             disabledTextColor: Colors.black,
             padding: EdgeInsets.all(8.0),
             splashColor: Colors.blueAccent,
-            onPressed: configButtonEnabled ? ()=> setWifiConfig() : null,
+            onPressed: buttonStatus ? () => setWifiConfig() : null,
             child: Text(
               "Push Configuration",
               style: TextStyle(fontSize: 20.0),
@@ -113,7 +114,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
             disabledTextColor: Colors.black,
             padding: EdgeInsets.all(8.0),
             splashColor: Colors.blueAccent,
-            onPressed: cancelButtonEnabled ? ()=> cancelWifiConfig() : null,
+            onPressed: !buttonStatus ? () => cancelWifiConfig() : null,
             child: Text(
               "Cancel",
               style: TextStyle(fontSize: 20.0),
@@ -133,10 +134,11 @@ class _EspTouchHomeState extends State<EspTouchHome> {
     if (_wifiName != null && _wifiBSSID != null && _wifiPassword != null) {
       print('Setting Wi-Fi config');
       setState(() {
+        buttonStatus = !buttonStatus;
         // Disable the config  button
-        configButtonEnabled = false;
+        // configButtonEnabled = false;
         // Enable the cancel button
-        cancelButtonEnabled = true;
+        // cancelButtonEnabled = true;
       });
 
       final ESPTouchTask task = ESPTouchTask(
@@ -166,10 +168,11 @@ class _EspTouchHomeState extends State<EspTouchHome> {
     print('Cancelling Wi-Fi config');
     streamSubscription.cancel();
     setState(() {
+      buttonStatus = !buttonStatus;
       // Disable the cancel button
-      cancelButtonEnabled = false;
+      // cancelButtonEnabled = false;
       // Enable the config button
-      configButtonEnabled = true;
+      // configButtonEnabled = true;
     });
   }
 
