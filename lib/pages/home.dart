@@ -14,7 +14,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:esptouch_flutter/esptouch_flutter.dart';
 import 'package:passwordfield/passwordfield.dart';
 
-// TODO: Make the button raised.
 // TODO: implement a spinner during processing
 
 class EspTouchHome extends StatefulWidget {
@@ -29,6 +28,7 @@ class EspTouchHome extends StatefulWidget {
 class _EspTouchHomeState extends State<EspTouchHome> {
   final Connectivity _connectivity = Connectivity();
   StreamSubscription<ConnectivityResult> _connectivitySubscription;
+  StreamSubscription<ESPTouchResult> streamSubscription;
 
 //  TextEditingController connectionStatusController;
   TextEditingController wifiPasswordController;
@@ -39,6 +39,9 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   String _wifiBSSID;
   String _wifiName;
   String _wifiPassword = 'nothing is ever easy';
+
+  bool configButtonEnabled = true;
+  bool cancelButtonEnabled = false;
 
   @override
   void initState() {
@@ -90,16 +93,29 @@ class _EspTouchHomeState extends State<EspTouchHome> {
           Text(
               "Tap the Push Configuration button to save the Wi-Fi configuration to your Remote Notify device. Make sure the device is powered on before tapping the button."),
           SizedBox(height: 10),
-          FlatButton(
+          RaisedButton(
             color: Colors.blue,
             textColor: Colors.white,
             disabledColor: Colors.grey,
             disabledTextColor: Colors.black,
             padding: EdgeInsets.all(8.0),
             splashColor: Colors.blueAccent,
-            onPressed: setWifiConfig,
+            onPressed: configButtonEnabled ? ()=> setWifiConfig() : null,
             child: Text(
               "Push Configuration",
+              style: TextStyle(fontSize: 20.0),
+            ),
+          ),
+          RaisedButton(
+            color: Colors.red,
+            textColor: Colors.white,
+            disabledColor: Colors.grey,
+            disabledTextColor: Colors.black,
+            padding: EdgeInsets.all(8.0),
+            splashColor: Colors.blueAccent,
+            onPressed: cancelButtonEnabled ? ()=> cancelWifiConfig() : null,
+            child: Text(
+              "Cancel",
               style: TextStyle(fontSize: 20.0),
             ),
           ),
@@ -113,10 +129,16 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   }
 
   void setWifiConfig() {
-    // TODO: validate the config first
     print('setWifiConfig()');
     if (_wifiName != null && _wifiBSSID != null && _wifiPassword != null) {
       print('Setting Wi-Fi config');
+      setState(() {
+        // Disable the config  button
+        configButtonEnabled = false;
+        // Enable the cancel button
+        cancelButtonEnabled = true;
+      });
+
       final ESPTouchTask task = ESPTouchTask(
         ssid: _wifiName,
         bssid: _wifiBSSID,
@@ -130,8 +152,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
           _remoteNotifyMacAddress = result.bssid;
         });
       };
-      StreamSubscription<ESPTouchResult> streamSubscription =
-          stream.listen(printResult);
+      streamSubscription = stream.listen(printResult);
       // https://github.com/smaho-engineering/esptouch_flutter_kotlin_example
       // Don't forget to cancel your stream subscription:
       Future.delayed(Duration(minutes: 1), () => streamSubscription.cancel());
@@ -139,6 +160,17 @@ class _EspTouchHomeState extends State<EspTouchHome> {
     } else {
       print('Missing configuration value');
     }
+  }
+
+  void cancelWifiConfig() {
+    print('Cancelling Wi-Fi config');
+    streamSubscription.cancel();
+    setState(() {
+      // Disable the cancel button
+      cancelButtonEnabled = false;
+      // Enable the config button
+      configButtonEnabled = true;
+    });
   }
 
   Future<void> initConnectivity() async {
