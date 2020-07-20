@@ -28,9 +28,8 @@ class EspTouchHome extends StatefulWidget {
 class _EspTouchHomeState extends State<EspTouchHome> {
   final Connectivity _connectivity = Connectivity();
   StreamSubscription<ConnectivityResult> _connectivitySubscription;
-  StreamSubscription<ESPTouchResult> streamSubscription;
+  StreamSubscription<ESPTouchResult> _streamSubscription;
 
-//  TextEditingController connectionStatusController;
   TextEditingController wifiPasswordController;
 
   String _connectionStatus = 'Unknown';
@@ -40,9 +39,9 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   String _wifiName;
   String _wifiPassword = 'nothing is ever easy';
 
+  // used to control the enabled status of the Configure and Cancel buttons
+  // one is always disabled while the other is enabled
   bool buttonStatus = true;
-//  bool configButtonEnabled = true;
-//  bool cancelButtonEnabled = false;
 
   @override
   void initState() {
@@ -135,12 +134,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
       print('Setting Wi-Fi config');
       setState(() {
         buttonStatus = !buttonStatus;
-        // Disable the config  button
-        // configButtonEnabled = false;
-        // Enable the cancel button
-        // cancelButtonEnabled = true;
       });
-
       final ESPTouchTask task = ESPTouchTask(
         ssid: _wifiName,
         bssid: _wifiBSSID,
@@ -148,17 +142,30 @@ class _EspTouchHomeState extends State<EspTouchHome> {
       );
       final Stream<ESPTouchResult> stream = task.execute();
       final printResult = (ESPTouchResult result) {
+        print('Configuration complete');
         print('IP: ${result.ip} MAC: ${result.bssid}');
         setState(() {
           _remoteNotifyIPAddress = result.ip;
           _remoteNotifyMacAddress = result.bssid;
+          // Reset our buttons too
+          buttonStatus = !buttonStatus;
         });
       };
-      streamSubscription = stream.listen(printResult);
+      _streamSubscription = stream.listen(printResult);
       // https://github.com/smaho-engineering/esptouch_flutter_kotlin_example
       // Don't forget to cancel your stream subscription:
-      Future.delayed(Duration(minutes: 1), () => streamSubscription.cancel());
-      // streamSubscription.cancel();
+      // Future.delayed(Duration(minutes: 1), () => _streamSubscription.cancel());
+
+      // Wait up to one minute for this to complete
+      // If you want, you can enable config setting(s) for this like they
+      // did in https://github.com/smaho-engineering/esptouch_flutter/tree/master/example
+      Timer _timer = new Timer(const Duration(minutes: 1), () {
+        print('Timer expired, cancelling stream subscription');
+        _streamSubscription.cancel();
+        setState(() {
+          buttonStatus = !buttonStatus;
+        });
+      });
     } else {
       print('Missing configuration value');
     }
@@ -166,13 +173,9 @@ class _EspTouchHomeState extends State<EspTouchHome> {
 
   void cancelWifiConfig() {
     print('Cancelling Wi-Fi config');
-    streamSubscription.cancel();
+    _streamSubscription.cancel();
     setState(() {
       buttonStatus = !buttonStatus;
-      // Disable the cancel button
-      // cancelButtonEnabled = false;
-      // Enable the config button
-      // configButtonEnabled = true;
     });
   }
 
