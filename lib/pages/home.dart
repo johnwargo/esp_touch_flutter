@@ -10,12 +10,14 @@ import 'package:flutter/services.dart';
 import 'package:passwordfield/passwordfield.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-// TODO: implement a spinner during processing
+import '../classes/config.dart';
+
+final Config config = new Config();
 
 class EspTouchHome extends StatefulWidget {
-  EspTouchHome({Key key, this.appName}) : super(key: key);
+  EspTouchHome({Key key, this.title}) : super(key: key);
 
-  final String appName;
+  final String title;
 
   @override
   _EspTouchHomeState createState() => _EspTouchHomeState();
@@ -34,24 +36,42 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   String _wifiBSSID;
   String _wifiName;
   String _wifiPassword;
+  bool _saveWifiPassword;
 
-  // used to control the enabled status of the Configure and Cancel buttons
-  // one is always disabled while the other is enabled
+  // used to control the enabled status of the Push Configuration and Cancel
+  // buttons one is always disabled while the other is enabled
   bool buttonStatus = true;
 
   @override
   void initState() {
     print('initState()');
     super.initState();
+
     initConnectivity();
     _connectivitySubscription =
         _connectivity.onConnectivityChanged.listen(_updateConnectionStatus);
+  }
 
+  Future<bool> loadConfigAsync() async {
+    // Note, this runs multiple times on startup because initConnectivity
+    // sets state which causes the Builder to run again. This isn't a problem,
+    // just a bit goofy
+    print('Home: loadConfigAsync()');
+    // Initialize the config object
+    await config.loadData();
+    // We saving the password?
+    _saveWifiPassword = config.saveWiFiPassword;
+    // initialize the Wi-Fi password (if we're saving it)
+    _saveWifiPassword
+        ? _wifiPassword = config.wifiPassword
+        : _wifiPassword = '';
     wifiPasswordController = TextEditingController(text: _wifiPassword);
     wifiPasswordController.addListener(() {
-      print('Password update...');
       setState(() => _wifiPassword = wifiPasswordController.text);
+      savePassword();
     });
+    // Tell FutureBuilder we're ready to go...
+    return true;
   }
 
   @override
@@ -59,6 +79,21 @@ class _EspTouchHomeState extends State<EspTouchHome> {
     print('dispose()');
     _connectivitySubscription.cancel();
     super.dispose();
+  }
+
+  void updateCheckValue(bool value) {
+    print('Home: updateCheckValue($value)');
+    config.saveWiFiPassword = value;
+    setState(() => _saveWifiPassword = value);
+    savePassword();
+  }
+
+  void savePassword() {
+    print('Home: savePassword()');
+    // Are we saving the password?
+    _saveWifiPassword
+        ? config.wifiPassword = _wifiPassword
+        : config.wifiPassword = '';
   }
 
   void setWifiConfig() {
@@ -227,71 +262,94 @@ class _EspTouchHomeState extends State<EspTouchHome> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.appName),
-      ),
-      body: SafeArea(
-        child: ListView(padding: const EdgeInsets.all(16.0), children: <Widget>[
-          Text("Connection Status: $_connectionStatus"),
-          Text("Network Name (SSID): $_wifiName"),
-          Text("Base Station ID (BSID): $_wifiBSSID"),
-          SizedBox(height: 10),
-          Text("Wi-Fi Network Password"),
-          SizedBox(height: 10),
-          PasswordField(
-            color: Colors.black,
-            hasFloatingPlaceholder: true,
-            controller: wifiPasswordController,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(2),
-                borderSide: BorderSide(width: 2, color: Colors.black)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(width: 2, color: Colors.blueAccent)),
-          ),
-          SizedBox(height: 10),
-          Text(
-              "Tap the Push Configuration button to save the Wi-Fi configuration to your Remote Notify device. Make sure the device is powered on before tapping the button."),
-          SizedBox(height: 10),
-          Visibility(
-            visible: buttonStatus,
-            child: RaisedButton(
-              color: Colors.blue,
-              textColor: Colors.white,
-              disabledColor: Colors.grey,
-              disabledTextColor: Colors.black,
-              padding: EdgeInsets.all(8.0),
-              splashColor: Colors.blueAccent,
-              onPressed: setWifiConfig,
-              child: Text(
-                "Push Configuration",
-                style: TextStyle(fontSize: 20.0),
+    return FutureBuilder(
+        future: loadConfigAsync(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            // Future hasn't finished yet, return a placeholder
+            return Scaffold(
+                appBar: AppBar(title: Text(widget.title)),
+                body: SafeArea(
+                    child: Center(
+                        child: Container(child: Text('Loading preferences')))));
+          } else {
+            return Scaffold(
+              appBar: AppBar(
+                title: Text(widget.title),
               ),
-            ),
-          ),
-          Visibility(
-            visible: !buttonStatus,
-            child: RaisedButton(
-              color: Colors.red,
-              textColor: Colors.white,
-              disabledColor: Colors.grey,
-              disabledTextColor: Colors.black,
-              padding: EdgeInsets.all(8.0),
-              splashColor: Colors.blueAccent,
-              onPressed: cancelWifiConfig,
-              child: Text(
-                "Cancel",
-                style: TextStyle(fontSize: 20.0),
+              body: SafeArea(
+                child: ListView(
+                    padding: const EdgeInsets.all(16.0),
+                    children: <Widget>[
+                      Text("Connection Status: $_connectionStatus"),
+                      Text("Network Name (SSID): $_wifiName"),
+                      Text("Base Station ID (BSID): $_wifiBSSID"),
+                      SizedBox(height: 10),
+                      Text("Wi-Fi Network Password"),
+                      SizedBox(height: 10),
+                      PasswordField(
+                        color: Colors.black,
+                        hasFloatingPlaceholder: true,
+                        controller: wifiPasswordController,
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(2),
+                            borderSide:
+                                BorderSide(width: 2, color: Colors.black)),
+                        focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide:
+                                BorderSide(width: 2, color: Colors.blueAccent)),
+                      ),
+                      CheckboxListTile(
+                        title: const Text('Save Wi-Fi password'),
+                        value: _saveWifiPassword,
+                        onChanged: updateCheckValue,
+                        controlAffinity: ListTileControlAffinity.leading,
+                      ),
+                      SizedBox(height: 10),
+                      Text(
+                          "Tap the Push Configuration button to save the Wi-Fi configuration to your Remote Notify device. Make sure the device is powered on before tapping the button."),
+                      SizedBox(height: 10),
+                      Visibility(
+                        visible: buttonStatus,
+                        child: RaisedButton(
+                          color: Colors.blue,
+                          textColor: Colors.white,
+                          disabledColor: Colors.grey,
+                          disabledTextColor: Colors.black,
+                          padding: EdgeInsets.all(8.0),
+                          splashColor: Colors.blueAccent,
+                          onPressed: setWifiConfig,
+                          child: Text(
+                            "Push Configuration",
+                            style: TextStyle(fontSize: 20.0),
+                          ),
+                        ),
+                      ),
+                      Visibility(
+                        visible: !buttonStatus,
+                        child: RaisedButton(
+                          color: Colors.red,
+                          textColor: Colors.white,
+                          disabledColor: Colors.grey,
+                          disabledTextColor: Colors.black,
+                          padding: EdgeInsets.all(8.0),
+                          splashColor: Colors.blueAccent,
+                          onPressed: cancelWifiConfig,
+                          child: Text(
+                            "Cancel",
+                            style: TextStyle(fontSize: 20.0),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 10),
+                      Text("Remote Notify"),
+                      Text("IP Address: $_remoteNotifyIPAddress"),
+                      Text("Mac Address: $_remoteNotifyMacAddress"),
+                    ]),
               ),
-            ),
-          ),
-          SizedBox(height: 10),
-          Text("Remote Notify"),
-          Text("IP Address: $_remoteNotifyIPAddress"),
-          Text("Mac Address: $_remoteNotifyMacAddress"),
-        ]),
-      ),
-    );
+            );
+          }
+        });
   }
 }

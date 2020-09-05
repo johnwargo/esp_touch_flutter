@@ -15,7 +15,7 @@ class Config {
 
   Config._internal() {
     print('Config constructor');
-    loadData();
+    // loadData();
   }
 
   void loadData() async {
