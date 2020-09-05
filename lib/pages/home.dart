@@ -1,18 +1,14 @@
-// ignore_for_file: public_member_api_docs
-
 import 'dart:async';
-import 'dart:io';
 import 'dart:core';
-//import 'dart:convert';
+import 'dart:io';
+
+import 'package:connectivity/connectivity.dart';
+import 'package:esptouch_flutter/esptouch_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
-import 'package:connectivity/connectivity.dart';
-import 'package:permission_handler/permission_handler.dart';
-
-import 'package:esptouch_flutter/esptouch_flutter.dart';
 import 'package:passwordfield/passwordfield.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 // TODO: implement a spinner during processing
 
@@ -37,7 +33,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   String _remoteNotifyMacAddress;
   String _wifiBSSID;
   String _wifiName;
-  String _wifiPassword = 'nothing is ever easy';
+  String _wifiPassword;
 
   // used to control the enabled status of the Configure and Cancel buttons
   // one is always disabled while the other is enabled
@@ -53,6 +49,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
 
     wifiPasswordController = TextEditingController(text: _wifiPassword);
     wifiPasswordController.addListener(() {
+      print('Password update...');
       setState(() => _wifiPassword = wifiPasswordController.text);
     });
   }
@@ -62,70 +59,6 @@ class _EspTouchHomeState extends State<EspTouchHome> {
     print('dispose()');
     _connectivitySubscription.cancel();
     super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.appName),
-      ),
-      body: SafeArea(
-        child: ListView(padding: const EdgeInsets.all(16.0), children: <Widget>[
-          Text("Connection Status: $_connectionStatus"),
-          Text("Network Name (SSID): $_wifiName"),
-          Text("Base Station ID (BSID): $_wifiBSSID"),
-          SizedBox(height: 10),
-          Text("Wi-Fi Network Password"),
-          SizedBox(height: 10),
-          PasswordField(
-            color: Colors.black,
-            hasFloatingPlaceholder: true,
-            controller: wifiPasswordController,
-            border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(2),
-                borderSide: BorderSide(width: 2, color: Colors.black)),
-            focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-                borderSide: BorderSide(width: 2, color: Colors.blueAccent)),
-          ),
-          SizedBox(height: 10),
-          Text(
-              "Tap the Push Configuration button to save the Wi-Fi configuration to your Remote Notify device. Make sure the device is powered on before tapping the button."),
-          SizedBox(height: 10),
-          RaisedButton(
-            color: Colors.blue,
-            textColor: Colors.white,
-            disabledColor: Colors.grey,
-            disabledTextColor: Colors.black,
-            padding: EdgeInsets.all(8.0),
-            splashColor: Colors.blueAccent,
-            onPressed: buttonStatus ? () => setWifiConfig() : null,
-            child: Text(
-              "Push Configuration",
-              style: TextStyle(fontSize: 20.0),
-            ),
-          ),
-          RaisedButton(
-            color: Colors.red,
-            textColor: Colors.white,
-            disabledColor: Colors.grey,
-            disabledTextColor: Colors.black,
-            padding: EdgeInsets.all(8.0),
-            splashColor: Colors.blueAccent,
-            onPressed: !buttonStatus ? () => cancelWifiConfig() : null,
-            child: Text(
-              "Cancel",
-              style: TextStyle(fontSize: 20.0),
-            ),
-          ),
-          SizedBox(height: 10),
-          Text("Remote Notify"),
-          Text("IP Address: $_remoteNotifyIPAddress"),
-          Text("Mac Address: $_remoteNotifyMacAddress"),
-        ]),
-      ),
-    );
   }
 
   void setWifiConfig() {
@@ -292,88 +225,73 @@ class _EspTouchHomeState extends State<EspTouchHome> {
     }
   }
 
-//  Future<void> _updateConnectionStatus(ConnectivityResult result) async {
-//    switch (result) {
-//      case ConnectivityResult.wifi:
-//        String wifiName, wifiBSSID, wifiIP;
-//
-//        try {
-//          if (Platform.isIOS) {
-//            LocationAuthorizationStatus status =
-//                await _connectivity.getLocationServiceAuthorization();
-//            if (status == LocationAuthorizationStatus.notDetermined) {
-//              status =
-//                  await _connectivity.requestLocationServiceAuthorization();
-//            }
-//            if (status == LocationAuthorizationStatus.authorizedAlways ||
-//                status == LocationAuthorizationStatus.authorizedWhenInUse) {
-//              wifiName = await _connectivity.getWifiName();
-//            } else {
-//              wifiName = await _connectivity.getWifiName();
-//            }
-//          } else {
-//            wifiName = await _connectivity.getWifiName();
-//          }
-//        } on PlatformException catch (e) {
-//          print(e.toString());
-//          wifiName = "Failed to get Wifi Name";
-//        }
-//
-//        try {
-//          if (Platform.isIOS) {
-//            LocationAuthorizationStatus status =
-//                await _connectivity.getLocationServiceAuthorization();
-//            if (status == LocationAuthorizationStatus.notDetermined) {
-//              status =
-//                  await _connectivity.requestLocationServiceAuthorization();
-//            }
-//            if (status == LocationAuthorizationStatus.authorizedAlways ||
-//                status == LocationAuthorizationStatus.authorizedWhenInUse) {
-//              wifiBSSID = await _connectivity.getWifiBSSID();
-//            } else {
-//              wifiBSSID = await _connectivity.getWifiBSSID();
-//            }
-//          } else {
-//            wifiBSSID = await _connectivity.getWifiBSSID();
-//          }
-//        } on PlatformException catch (e) {
-//          print(e.toString());
-//          wifiBSSID = "Failed to get Wifi BSSID";
-//        }
-//
-//        try {
-//          wifiIP = await _connectivity.getWifiIP();
-//        } on PlatformException catch (e) {
-//          print(e.toString());
-//          wifiIP = "Failed to get Wifi IP";
-//        }
-//
-//        setState(() => _wifiName = wifiName);
-//        setState(() => _wifiBSSID = wifiBSSID);
-////        setState(() => _wifiIP = wifiIP);
-////        setState(() => _wifiList = wList);
-//
-////        setState(() {
-////          _wifiName = wifiName;
-////        });
-////          setState(() {
-////          _wifiBSSID = wifiBSSID;
-////        });
-//
-////        setState(() {
-////          _connectionStatus = '$result\n'
-////              'Wifi Name: $wifiName\n'
-////              'Wifi BSSID: $wifiBSSID\n'
-//////              'Wifi IP: $wifiIP\n';
-////        });
-//        break;
-//      case ConnectivityResult.mobile:
-//      case ConnectivityResult.none:
-//        setState(() => _connectionStatus = result.toString());
-//        break;
-//      default:
-//        setState(() => _connectionStatus = 'Failed to get connectivity.');
-//        break;
-//    }
-//  }
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.appName),
+      ),
+      body: SafeArea(
+        child: ListView(padding: const EdgeInsets.all(16.0), children: <Widget>[
+          Text("Connection Status: $_connectionStatus"),
+          Text("Network Name (SSID): $_wifiName"),
+          Text("Base Station ID (BSID): $_wifiBSSID"),
+          SizedBox(height: 10),
+          Text("Wi-Fi Network Password"),
+          SizedBox(height: 10),
+          PasswordField(
+            color: Colors.black,
+            hasFloatingPlaceholder: true,
+            controller: wifiPasswordController,
+            border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(2),
+                borderSide: BorderSide(width: 2, color: Colors.black)),
+            focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(width: 2, color: Colors.blueAccent)),
+          ),
+          SizedBox(height: 10),
+          Text(
+              "Tap the Push Configuration button to save the Wi-Fi configuration to your Remote Notify device. Make sure the device is powered on before tapping the button."),
+          SizedBox(height: 10),
+          Visibility(
+            visible: buttonStatus,
+            child: RaisedButton(
+              color: Colors.blue,
+              textColor: Colors.white,
+              disabledColor: Colors.grey,
+              disabledTextColor: Colors.black,
+              padding: EdgeInsets.all(8.0),
+              splashColor: Colors.blueAccent,
+              onPressed: setWifiConfig,
+              child: Text(
+                "Push Configuration",
+                style: TextStyle(fontSize: 20.0),
+              ),
+            ),
+          ),
+          Visibility(
+            visible: !buttonStatus,
+            child: RaisedButton(
+              color: Colors.red,
+              textColor: Colors.white,
+              disabledColor: Colors.grey,
+              disabledTextColor: Colors.black,
+              padding: EdgeInsets.all(8.0),
+              splashColor: Colors.blueAccent,
+              onPressed: cancelWifiConfig,
+              child: Text(
+                "Cancel",
+                style: TextStyle(fontSize: 20.0),
+              ),
+            ),
+          ),
+          SizedBox(height: 10),
+          Text("Remote Notify"),
+          Text("IP Address: $_remoteNotifyIPAddress"),
+          Text("Mac Address: $_remoteNotifyMacAddress"),
+        ]),
+      ),
+    );
+  }
 }
