@@ -29,6 +29,8 @@ class _EspTouchHomeState extends State<EspTouchHome> {
   StreamSubscription<ConnectivityResult> _connectivitySubscription;
   StreamSubscription<ESPTouchResult> _streamSubscription;
 
+  Timer _timer;
+
   TextEditingController wifiPasswordController;
 
   String _connectionStatus = 'Unknown';
@@ -124,7 +126,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
       // Wait up to one minute for this to complete
       // If you want, you can enable config setting(s) for this like they
       // did in https://github.com/smaho-engineering/esptouch_flutter/tree/master/example
-      Timer _timer = new Timer(const Duration(minutes: 1), () {
+      _timer = new Timer(const Duration(minutes: 1), () {
         print('Timer expired, cancelling stream subscription');
         _streamSubscription.cancel();
         setState(() {
@@ -138,7 +140,9 @@ class _EspTouchHomeState extends State<EspTouchHome> {
 
   void cancelWifiConfig() {
     print('Cancelling Wi-Fi config');
-    _streamSubscription.cancel();
+    // _streamSubscription.cancel();
+    if (_streamSubscription != null) _streamSubscription.cancel();
+    if (_timer.isActive) _timer.cancel();
     setState(() {
       buttonStatus = !buttonStatus;
     });
