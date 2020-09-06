@@ -7,6 +7,7 @@ import 'package:esptouch_flutter/esptouch_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:passwordfield/passwordfield.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -67,8 +68,7 @@ class _EspTouchHomeState extends State<EspTouchHome> {
         : _wifiPassword = '';
     wifiPasswordController = TextEditingController(text: _wifiPassword);
     wifiPasswordController.addListener(() {
-      setState(() => _wifiPassword = wifiPasswordController.text);
-      savePassword();
+      _wifiPassword = wifiPasswordController.text;
     });
     // Tell FutureBuilder we're ready to go...
     return true;
@@ -83,17 +83,10 @@ class _EspTouchHomeState extends State<EspTouchHome> {
 
   void updateCheckValue(bool value) {
     print('Home: updateCheckValue($value)');
+    // Write the setting to the config
     config.saveWiFiPassword = value;
+    // Then update the internal value
     setState(() => _saveWifiPassword = value);
-    savePassword();
-  }
-
-  void savePassword() {
-    print('Home: savePassword()');
-    // Are we saving the password?
-    _saveWifiPassword
-        ? config.wifiPassword = _wifiPassword
-        : config.wifiPassword = '';
   }
 
   void setWifiConfig() {
@@ -102,7 +95,11 @@ class _EspTouchHomeState extends State<EspTouchHome> {
       print('Setting Wi-Fi config');
       setState(() {
         buttonStatus = !buttonStatus;
+        _wifiPassword = wifiPasswordController.text;
       });
+      _saveWifiPassword
+          ? config.wifiPassword = _wifiPassword
+          : config.wifiPassword = '';
       final ESPTouchTask task = ESPTouchTask(
         ssid: _wifiName,
         bssid: _wifiBSSID,
@@ -182,7 +179,6 @@ class _EspTouchHomeState extends State<EspTouchHome> {
         print('Permission already granted (previous execution?)');
       }
     }
-
     return _updateConnectionStatus(result);
   }
 
@@ -274,9 +270,27 @@ class _EspTouchHomeState extends State<EspTouchHome> {
                         child: Container(child: Text('Loading preferences')))));
           } else {
             return Scaffold(
-              appBar: AppBar(
-                title: Text(widget.title),
-              ),
+              appBar: AppBar(title: Text(widget.title), actions: <Widget>[
+                IconButton(
+                  icon: Icon(Icons.refresh),
+                  onPressed: () {
+                    print('Refresh tapped');
+                    // Are we doing our thing?
+                    if (!buttonStatus) cancelWifiConfig();
+                    // Let the user know we're refreshing settings
+                    Fluttertoast.showToast(
+                        msg: "Refreshing network settings...",
+                        toastLength: Toast.LENGTH_SHORT,
+                        gravity: ToastGravity.TOP,
+                        timeInSecForIosWeb: 1,
+                        backgroundColor: Colors.black,
+                        textColor: Colors.white,
+                        fontSize: 16.0);
+                    initConnectivity();
+                    Fluttertoast.cancel();
+                  },
+                ),
+              ]),
               body: SafeArea(
                 child: ListView(
                     padding: const EdgeInsets.all(16.0),
@@ -284,6 +298,10 @@ class _EspTouchHomeState extends State<EspTouchHome> {
                       Text("Connection Status: $_connectionStatus"),
                       Text("Network Name (SSID): $_wifiName"),
                       Text("Base Station ID (BSID): $_wifiBSSID"),
+                      SizedBox(height: 10),
+                      Text("ESP32 Device"),
+                      Text("IP Address: $_remoteNotifyIPAddress"),
+                      Text("MAC Address: $_remoteNotifyMacAddress"),
                       SizedBox(height: 10),
                       Text("Wi-Fi Network Password"),
                       SizedBox(height: 10),
@@ -307,8 +325,11 @@ class _EspTouchHomeState extends State<EspTouchHome> {
                         controlAffinity: ListTileControlAffinity.leading,
                       ),
                       SizedBox(height: 10),
-                      Text(
-                          "Tap the Push Configuration button to save the Wi-Fi configuration to your Remote Notify device. Make sure the device is powered on before tapping the button."),
+                      Text("Tap the Push Configuration button to save the " +
+                          "Wi-Fi settings to nearby ESP32 devices. " +
+                          "Make sure the device is powered on " +
+                          "and in SmartConfig mode before tapping " +
+                          "the button."),
                       SizedBox(height: 10),
                       Visibility(
                         visible: buttonStatus,
@@ -342,10 +363,6 @@ class _EspTouchHomeState extends State<EspTouchHome> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 10),
-                      Text("Remote Notify"),
-                      Text("IP Address: $_remoteNotifyIPAddress"),
-                      Text("Mac Address: $_remoteNotifyMacAddress"),
                     ]),
               ),
             );
